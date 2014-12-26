@@ -1,7 +1,6 @@
 ## Generated from atg/cloud/play.proto for atg.cloud
 require "beefcake"
-require './game.pb'
-require './storage.pb'
+
 
 class ControlPlayGameRequest
   include Beefcake::Message
