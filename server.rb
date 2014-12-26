@@ -92,9 +92,14 @@ class ControlServer < EventMachine::Connection
   #WHERE `servernodes`.`id` = 19
   ## UPDATE `status_checks` SET `status` = 'test',
   #{#}`updated_at` = '2014-12-24 08:26:39' WHERE `status_checks`.`id` = 1
+ # DELETE FROM `servernodes` WHERE `servernodes`.`id` = 16 AND `servernodes`.`status` = 'Dump'
 
   def unbind
-    puts "-- someone disconnected from the echo server!"
+    #port, ip = Socket.unpack_sockaddr_in(get_peername)
+
+    $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
+      AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
+    puts "-- #{@ip}:#{@control_node_port} disconnected from the echo server!"
   end
 
   def self.connect_hash
