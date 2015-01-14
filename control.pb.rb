@@ -43,6 +43,8 @@ class ControlMessage
     CODE_USER_ALREADY_LOGIN = 268513296
     CODE_INVALID_MAC_ADDRESS = 268513297
     CODE_INVALID_PORT = 268513298
+    CODE_INVALID_IP_ADDRESS = 268513299
+    CODE_INVALID_VERSION = 268513300
   end
 end
 
@@ -50,10 +52,20 @@ class ControlNodeInstance
   include Beefcake::Message
 end
 
+class StreamerInstance
+  include Beefcake::Message
+end
+
 class ControlMessage
 end
 
 class ControlNodeInstance
-  required :mac_address, :string, 1
-  required :streamer_port, :uint32, 2, :default => 0
+  required :version, :string, 1
+  required :mac_address, :string, 2
+  required :local_address, :string, 3
+end
+
+class StreamerInstance
+  required :version, :string, 1
+  required :port, :uint32, 2, :default => 0
 end

@@ -11,7 +11,9 @@ class ControlRegisterNodeResponse
 end
 
 class ControlRegisterNodeRequest
-  required :instance, ControlNodeInstance, 1
+  required :node, ControlNodeInstance, 1
+  required :streamer, StreamerInstance, 2
+  repeated :installed_packages, :string, 3
 end
 
 class ControlRegisterNodeResponse

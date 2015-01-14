@@ -11,12 +11,13 @@ require './heartbeat.pb'
 require 'mysql'
 require 'json'
 
-class ControlServer < EventMachine::Connection
+class ControlServer < EM::Connection
 
   @@connect_hash = Hash.new
 
   def post_init
     p "-- someone connected to the control server!"
+    start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
     port, ip = Socket.unpack_sockaddr_in(get_peername)
     @ip = ip
     @control_node_port = port.to_s
@@ -33,16 +34,19 @@ class ControlServer < EventMachine::Connection
     content = hh[2]
     case header
     when ControlMessage::Type::TYPE_REGISTER_NODE_REQUEST
-      #db servernode register
       p "rcv prepare register request"
       register_request= ControlRegisterNodeRequest.decode(content)
-      a = register_request.instance.streamer_port.to_s
+      cast_port = register_request.streamer.port.to_s
+      version = register_request.node.version
+      mac = register_request.node.mac_address
+      priavte_ip = register_request.node.local_address
       p @ip
       p @control_node_port
       $con.query( "INSERT INTO `servernodes` (`created_at`, `updated_at`,
-        `ip_address`,`control_node_port`,`cast_port`,`status`)
+        `ip_address`,`control_node_port`,`cast_port`,`status`,
+        `name`,`version`,`private_ip_add`)
         VALUES ( '#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
-        '#{a}','Available')")
+        '#{cast_port}','Available','#{mac}', '#{version}','#{priavte_ip}')")
       handle_send("register_response")
     when ControlMessage::Type::TYPE_HEARTBEAT_REQUEST
       handle_send("heartbeat_response")
@@ -88,15 +92,8 @@ class ControlServer < EventMachine::Connection
     end
   end
 
-  #UPDATE `servernodes` SET `name` = 'ttt', `updated_at` = '2014-12-23 10:30:41'
-  #WHERE `servernodes`.`id` = 19
-  ## UPDATE `status_checks` SET `status` = 'test',
-  #{#}`updated_at` = '2014-12-24 08:26:39' WHERE `status_checks`.`id` = 1
- # DELETE FROM `servernodes` WHERE `servernodes`.`id` = 16 AND `servernodes`.`status` = 'Dump'
-
   def unbind
     #port, ip = Socket.unpack_sockaddr_in(get_peername)
-
     $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
       AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
     puts "-- #{@ip}:#{@control_node_port} disconnected from the echo server!"
@@ -165,7 +162,7 @@ class ControlServer < EventMachine::Connection
       play_array << control_type << play_request.encode.length << play_request.encode
       str = 'NNa' << play_request.encode.length.to_s
 
-      p play_array
+      #p play_array
       send_data(play_array.pack(str))
     when "stop_game"
       p "sending TYPE_STOP_GAME_REQUEST to node => "
@@ -211,6 +208,8 @@ EventMachine.run do
     puts e.error
   end
 
+  $con.query("Truncate table `servernodes`")
+
   $redis = Redis.new(:host => 'localhost', :port => 6379)
 
   Thread.new do
@@ -225,6 +224,6 @@ EventMachine.run do
     end
   end
 
-  EventMachine.start_server "0.0.0.0", 3000, ControlServer
+  EventMachine.start_server "0.0.0.0", 10000, ControlServer
 
 end
