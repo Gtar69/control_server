@@ -44,8 +44,6 @@ class ControlServer < EM::Connection
       version = register_request.node.version
       mac = register_request.node.mac_address
       priavte_ip = register_request.node.local_address
-      p @ip
-      p @control_node_port
       $con.query( "INSERT INTO `servernodes` (`created_at`, `updated_at`,
         `ip_address`,`control_node_port`,`cast_port`,`status`,
         `name`,`version`,`private_ip_add`)

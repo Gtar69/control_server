@@ -1,0 +1,156 @@
+{
+  "method": "registerNodeRequest",
+  "params": {
+    "node": {
+      "version": "x.x.x",
+      "macAddress": "xx-xx-xx-xx-xx-xx",
+      "localAddress": "xxx.xxx.xxx.xxx"
+    },
+    "streamer": {
+      "version": "x.x.x",
+      "port": 12345
+    },
+    "installedPackages": [
+      "aaaaa",
+      "bbbbb",
+      "ccccc"
+    ]
+  }
+}
+
+{
+  "method": "registerNodeResponse",
+  "data": {
+    "code": 200,
+    "message" : "what"
+  }
+}
+
+{
+  "method": "prepareGameRequest",
+  "params": {
+    "userId": 0,
+  "gameId": 1,
+  "synchronizeRequired": true|false,
+    "storage": {
+      "host": "xxx.xxx.xxx.xxx",
+    "port": 12345,
+    "username": "anonymous",
+    "password": "",
+    "secure": {
+        "enabled": true|false,
+      "validation": true|false
+    },
+    "timeout": {
+      "connection": 10,
+      "operation": 15
+    }
+    }
+  }
+}
+
+{
+  "method": "prepareGameResponse",
+  "data": {
+    "code": 200,
+    "message" : "what",
+    "userId": 0,
+  "gameId": 1,
+  "availableSaves": [
+    "1xxxxxxxxxxxxxxxxxxx.tgz",
+    "2xxxxxxxxxxxxxxxxxxx.tgz",
+    "3xxxxxxxxxxxxxxxxxxx.tgz",
+    "4xxxxxxxxxxxxxxxxxxx.tgz",
+    "5xxxxxxxxxxxxxxxxxxx.tgz",
+    "6xxxxxxxxxxxxxxxxxxx.tgz",
+    "7xxxxxxxxxxxxxxxxxxx.tgz",
+    "8xxxxxxxxxxxxxxxxxxx.tgz",
+    "9xxxxxxxxxxxxxxxxxxx.tgz",
+    "axxxxxxxxxxxxxxxxxxx.tgz"
+  ]
+  }
+}
+
+{
+  "method": "playGameRequest",
+  "params": {
+    "userId": 0,
+    "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
+    "game": {
+      "id": 1,
+      "name": "aaaaa",
+      "process": "bbbbb",
+      "commands": {
+        "launch": "ccccc",
+        "shutdown": "ddddd"
+    },
+
+    "backup": [
+      {
+        "name": "xxxxx",
+      "root": "yyyyy",
+      "entries": [
+            "qqqqqq",
+        "wwwwww",
+        "eeeeee"
+      ],
+      "removeEntries": [
+        "sssssss",
+        "ddddddd",
+        "fffffff"
+      ]
+      },
+      {
+        "name": "iiiii",
+      "root": "ooooo",
+      "entries": [
+            "pppp",
+        "llll",
+        "kkkk"
+      ],
+      "removeEntries": [
+        "jjjj",
+        "hhhh",
+        "gggg"
+      ]
+      }
+    ]
+    },
+  }
+}
+
+{
+  "method": "playGameResponse",
+  "data": {
+    "code": 200,
+    "message" : "what",
+    "userId": 0,
+  "gameId": 1
+  }
+}
+
+{
+  "method": "stopGameRequest",
+  "params": {
+    "userId": 0,
+  "gameId": 1
+  }
+}
+
+{
+  "method": "stopGameResponse",
+  "data": {
+    "code": 200,
+    "message" : "what",
+    "userId": 0,
+  "gameId": 1
+  }
+}
+
+{
+  "method": "heartbeatRequest"
+}
+
+{
+  "method": "heartbeatResponse"
+}
