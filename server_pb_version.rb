@@ -1,5 +1,6 @@
 require 'eventmachine'
 require 'redis'
+require "beefcake"
 require './control.pb'
 require './prepare.pb'
 require './play.pb'
@@ -26,12 +27,15 @@ class ControlServer < EM::Connection
   end
 
   def receive_data(data)
-    h =  data.unpack('NN')
-    header = h[0]
-    content_length = h[1]
-    str = 'NNa' << content_length.to_s
-    hh = data.unpack(str)
-    content = hh[2]
+    begin
+      h =  data.unpack('NN')
+      header = h[0]
+      content_length = h[1]
+      str = 'NNa' << content_length.to_s
+      hh = data.unpack(str)
+      content = hh[2]
+    rescue
+    end
     case header
     when ControlMessage::Type::TYPE_REGISTER_NODE_REQUEST
       p "rcv prepare register request"
@@ -40,8 +44,6 @@ class ControlServer < EM::Connection
       version = register_request.node.version
       mac = register_request.node.mac_address
       priavte_ip = register_request.node.local_address
-      p @ip
-      p @control_node_port
       $con.query( "INSERT INTO `servernodes` (`created_at`, `updated_at`,
         `ip_address`,`control_node_port`,`cast_port`,`status`,
         `name`,`version`,`private_ip_add`)
@@ -78,16 +80,12 @@ class ControlServer < EM::Connection
         a = stop_request.user_id
         $con.query("UPDATE `status_checks` SET `status` = 'stop_game_from_node',
           `updated_at` = '#{Time.now}' WHERE `status_checks`.`id` = #{a}")
-        #$con.query("UPDATE `servernodes` SET `status` = 'Available',
-        #  `updated_at` = '#{Time.now}', `user_id` = NULL, `product_id` = NULL
-        #  WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
         opts = {"user_id" => stop_request.user_id, "game_id" => stop_request.game_id}
-        p opts
         handle_send("stop_game_response", opts)
       else
+        p "error"
       end
     else
-      #error handling
       p "error"
     end
   end
@@ -133,36 +131,41 @@ class ControlServer < EM::Connection
       send_data(prepare_array.pack(str))
     when "handle_play_game"
       p "sending TYPE_PLAY_GAME_REQUEST to node => "
-      control_type = ControlMessage::Type::TYPE_PLAY_GAME_REQUEST
+      begin
+        control_type = ControlMessage::Type::TYPE_PLAY_GAME_REQUEST
+        game = Game.new
+        game.id = opts["game_id"]
+        game.name = opts["name"]
+        game.process_name = opts["process_name"]
+        game.launch_command = opts["launch_command"]
+        game.shutdown_command = opts["shutdown_command"]
+        game.backup = []
 
-      game = Game.new
-      game.id = opts["game_id"]
-      game.name = opts["name"]
-      game.package_name = opts["package_name"]
-      game.launchable_activity = opts["launchable_activity"]
-      game.save_game_root = opts["save_game_root"]
-      game.save_game_location = opts["save_game_location"]
-      game.save_game_entries = opts["save_game_entries"]
-      game.remove_save_game_entries = opts["remove_save_game_entries"]
+        back_up = GameBackup.new
+        back_up.name = opts["back_up_name"]
+        back_up.root = opts["back_up_root"]
+        back_up.entries = opts["back_up_entries"]
+        back_up.remove_entries = opts["back_up_remove_entries"]
+        game.backup<< back_up
 
-      storage = Storage.new
-      storage.host = "54.176.237.32"
-      storage.port = 990
-      storage.username = "atgamesftp"
-      storage.password = "atgamescloud"
-      storage.secure = true
+        storage = Storage.new
+        storage.host = "54.176.237.32"
+        storage.port = 990
+        storage.username = "atgamesftp"
+        storage.password = "atgamescloud"
+        storage.secure = true
 
-      play_request = ControlPlayGameRequest.new
-      play_request.user_id = opts["user_id"]
-      play_request.update_saved = opts["update_saved"]
-      play_request.game = game
-      play_request.storage = storage
-
+        play_request = ControlPlayGameRequest.new
+        play_request.user_id = opts["user_id"]
+        play_request.has_backup = opts["update_saved"]
+        play_request.game = game
+        play_request.storage = storage
+      rescue Exception => ex
+        puts "An error of type #{ex.class} happened, message is #{ex.message}"
+      end
       play_array = []
       play_array << control_type << play_request.encode.length << play_request.encode
       str = 'NNa' << play_request.encode.length.to_s
-
-      #p play_array
       send_data(play_array.pack(str))
     when "stop_game"
       p "sending TYPE_STOP_GAME_REQUEST to node => "
