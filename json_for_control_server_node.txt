@@ -71,32 +71,32 @@
   }
 }
 
-{
   "method": "playGameRequest",
   "params": {
     "userId": 0,
-    "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
+  "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
     "game": {
       "id": 1,
-      "name": "aaaaa",
-      "process": "bbbbb",
-      "commands": {
+    "name": "aaaaa",
+    "process": "bbbbb",
+    "commands": {
       "launch": "ccccc",
       "shutdown": "ddddd"
     },
-
     "backup": [
       {
         "name": "xxxxx",
-        "root": "yyyyy",
-        "entries": [
-          "qqqqqq",
-          "wwwwww",
-          "eeeeee"],
-        "removeEntries": [
-          "sssssss",
-          "ddddddd",
-          "fffffff"]
+      "root": "yyyyy",
+      "entries": [
+            "qqqqqq",
+        "wwwwww",
+        "eeeeee"
+      ],
+      "removeEntries": [
+        "sssssss",
+        "ddddddd",
+        "fffffff"
+      ]
       },
       {
         "name": "iiiii",
