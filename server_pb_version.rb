@@ -205,7 +205,7 @@ EventMachine.run do
   p "tcp start up"
 
   begin
-    $con = Mysql.new 'localhost', 'chris', '12345678','Mgmt_Server_dev'
+    $con = Mysql.new 'localhost', 'root', '12345678','Mgmt_Server_dev'
   rescue Mysql::Error => e
     puts e.errno
     puts e.error
@@ -227,6 +227,6 @@ EventMachine.run do
     end
   end
 
-  EventMachine.start_server "0.0.0.0", 10000, ControlServer
+  EventMachine.start_server "0.0.0.0", 3000, ControlServer
 
 end
