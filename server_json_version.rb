@@ -2,6 +2,7 @@ require 'eventmachine'
 require 'redis'
 require 'mysql'
 require 'json'
+require 'timers'
 
 class ControlServer < EM::Connection
 
@@ -15,6 +16,12 @@ class ControlServer < EM::Connection
     @control_node_port = port.to_s
     ip_with_port = ip + ":" + port.to_s
     @@connect_hash[ip_with_port] = self
+    @timers = Timers::Group.new
+    @timers.every(15) do
+      p " #{Time.now} on post init: ready to disconnect"
+      self.unbind
+    end
+    Thread.new { @timers.wait }
   end
 
   def receive_data data
@@ -25,28 +32,34 @@ class ControlServer < EM::Connection
       case parse_data["method"]
       when "registerNodeRequest"
         p "register node request information"
-
+        packages = parse_data["params"]["packages"]
         version = parse_data["params"]["node"]["version"]
-        mac_address = parse_data["params"]["node"]["mac_address"]
-        private_ip = parse_data["params"]["node"]["local_address"]
+        mac_address = parse_data["params"]["node"]["macAddress"]
+        private_ip = parse_data["params"]["node"]["localAddress"]
         cast_port = parse_data["params"]["streamer"]["port"]
+        streamer_version = parse_data["params"]["streamer"]["version"]
         $con.query( "INSERT INTO `servernodes` (`created_at`, `updated_at`,`ip_address`,
-          `control_node_port`,`cast_port`,`status`,`name`,`version`,`private_ip_add`)
+          `control_node_port`,`cast_port`,`status`,`name`,`version`,`private_ip_add`, `packages`,`streamer_version`)
           VALUES ( '#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
-          '#{cast_port}','Available','#{mac_address}', '#{version}','#{private_ip}')")
+          '#{cast_port}','Available','#{mac_address}', '#{version}','#{private_ip}', '#{packages}', '#{streamer_version}')")
         handle_send("register_response")
       when "heartbeatRequest"
-        p "heartbeat request info"
+        p "heartbeat request info from #{@ip}:#{@control_node_port}"
+        @timers.pause
+        @timers = Timers::Group.new
+        @timers.every(15) do
+          p " #{Time.now} in heartbeat request => ready to disconnect"
+          self.unbind
+        end
+        Thread.new { @timers.wait }
         handle_send("heartbeat_response")
       when "prepareGameResponse"
         #ok / fail condition
         p "rcv prepare response"
         p parse_data
         user_id = parse_data["params"]["userId"]
-        p user_id
         $con.query("UPDATE `status_checks` SET `status` = 'notify_to_play',`updated_at` = '#{Time.now}'
           WHERE `status_checks`.`id` = #{user_id}")
-
       when "playGameResponse"
         p "rcv play repsponse"
         p parse_data
@@ -55,7 +68,6 @@ class ControlServer < EM::Connection
           `updated_at` = '#{Time.now}' WHERE `status_checks`.`id` = #{user_id}")
 
       when "stopGameResponse"
-        #ok / fail condition
         $con.query("UPDATE `servernodes` SET `status` = 'Available',
           `updated_at` = '#{Time.now}', `user_id` = NULL, `product_id` = NULL
           WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
@@ -73,6 +85,9 @@ class ControlServer < EM::Connection
     end
   end
 
+
+
+
   def handle_send(condition, opts = {})
     begin
       case condition
@@ -85,7 +100,7 @@ class ControlServer < EM::Connection
         send_data(response.to_json)
       when "prepare_request"
         p 'send prepare'
-        storage = { host: "54.176.237.32",port: 990,username: "atgamesftp",password: "atgamescloud",
+        storage = { host: "54.176.73.176",port: 990,username: "atgamesftp",password: "atgamescloud",
           secure: { enabled: true, validation: false}, timeout: { connection: 10, operation: 15}}
         params = { userId: opts["user_id"], gameId: opts["game_id"], synchronizeRequired: opts["update_saved"],
           storage: storage}
@@ -93,19 +108,17 @@ class ControlServer < EM::Connection
         send_data(response.to_json)
       when "handle_play_game"
         p 'send play'
+        backup = [name: opts["back_up_name"], root: opts["back_up_root"],
+          entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]]
+
         game = { id: opts["game_id"], name: opts["name"], process: opts["process_name"],
+          backup: backup,
           commands: {launch: opts["launch_command"], shutdown: opts["shutdown_command"]} }
-
-        p game.to_json
-
-        backup = {name: opts["back_up_name"], root: opts["back_up_root"],
-          entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]}
-        response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game, backup: backup} }
-        p "send play response"
-        p response
+        response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game} }
         send_data(response.to_json)
       when "stop_game"
         response = { method: "stopGameRequest", params: {userId: opts["user_id"], gameId: opts["game_id"]}}
+        p response.to_json
         send_data(response.to_json)
       when "stop_game_response"
         data = { code: 200, message: "what", userId: opts["user_id"], gameId: opts["game_id"]}
@@ -131,6 +144,8 @@ end
 
 
 EventMachine.run do
+
+  #EventMachine.heartbeat_interval
   p "control server start up"
   begin
     $con = Mysql.new 'localhost', 'chris', '12345678','Mgmt_Server_dev'

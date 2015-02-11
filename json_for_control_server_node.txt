@@ -30,21 +30,21 @@
   "method": "prepareGameRequest",
   "params": {
     "userId": 0,
-  "gameId": 1,
-  "synchronizeRequired": true|false,
+    "gameId": 1,
+    "synchronizeRequired": true|false,
     "storage": {
       "host": "xxx.xxx.xxx.xxx",
-    "port": 12345,
-    "username": "anonymous",
-    "password": "",
-    "secure": {
+      "port": 12345,
+      "username": "anonymous",
+      "password": "",
+      "secure": {
         "enabled": true|false,
-      "validation": true|false
-    },
-    "timeout": {
-      "connection": 10,
-      "operation": 15
-    }
+        "validation": true|false
+      },
+      "timeout": {
+        "connection": 10,
+        "operation": 15
+      }
     }
   }
 }
@@ -71,20 +71,18 @@
   }
 }
 
-{
   "method": "playGameRequest",
   "params": {
     "userId": 0,
-    "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
+  "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
     "game": {
       "id": 1,
-      "name": "aaaaa",
-      "process": "bbbbb",
-      "commands": {
-        "launch": "ccccc",
-        "shutdown": "ddddd"
+    "name": "aaaaa",
+    "process": "bbbbb",
+    "commands": {
+      "launch": "ccccc",
+      "shutdown": "ddddd"
     },
-
     "backup": [
       {
         "name": "xxxxx",
@@ -125,7 +123,7 @@
     "code": 200,
     "message" : "what",
     "userId": 0,
-  "gameId": 1
+    "gameId": 1
   }
 }
 
@@ -133,7 +131,7 @@
   "method": "stopGameRequest",
   "params": {
     "userId": 0,
-  "gameId": 1
+    "gameId": 1
   }
 }
 
