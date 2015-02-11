@@ -81,24 +81,22 @@
       "name": "aaaaa",
       "process": "bbbbb",
       "commands": {
-        "launch": "ccccc",
-        "shutdown": "ddddd"
+      "launch": "ccccc",
+      "shutdown": "ddddd"
     },
 
     "backup": [
       {
         "name": "xxxxx",
-      "root": "yyyyy",
-      "entries": [
-            "qqqqqq",
-        "wwwwww",
-        "eeeeee"
-      ],
-      "removeEntries": [
-        "sssssss",
-        "ddddddd",
-        "fffffff"
-      ]
+        "root": "yyyyy",
+        "entries": [
+          "qqqqqq",
+          "wwwwww",
+          "eeeeee"],
+        "removeEntries": [
+          "sssssss",
+          "ddddddd",
+          "fffffff"]
       },
       {
         "name": "iiiii",
@@ -125,7 +123,7 @@
     "code": 200,
     "message" : "what",
     "userId": 0,
-  "gameId": 1
+    "gameId": 1
   }
 }
 

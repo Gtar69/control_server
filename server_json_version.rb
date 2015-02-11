@@ -85,6 +85,9 @@ class ControlServer < EM::Connection
     end
   end
 
+
+
+
   def handle_send(condition, opts = {})
     begin
       case condition
@@ -105,14 +108,17 @@ class ControlServer < EM::Connection
         send_data(response.to_json)
       when "handle_play_game"
         p 'send play'
+        backup = [name: opts["back_up_name"], root: opts["back_up_root"],
+          entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]]
+
         game = { id: opts["game_id"], name: opts["name"], process: opts["process_name"],
+          backup: backup,
           commands: {launch: opts["launch_command"], shutdown: opts["shutdown_command"]} }
-        backup = {name: opts["back_up_name"], root: opts["back_up_root"],
-          entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]}
-        response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game, backup: backup} }
+        response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game} }
         send_data(response.to_json)
       when "stop_game"
         response = { method: "stopGameRequest", params: {userId: opts["user_id"], gameId: opts["game_id"]}}
+        p response.to_json
         send_data(response.to_json)
       when "stop_game_response"
         data = { code: 200, message: "what", userId: opts["user_id"], gameId: opts["game_id"]}
