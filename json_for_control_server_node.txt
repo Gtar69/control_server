@@ -49,37 +49,30 @@
   }
 }
 
+
 {
   "method": "prepareGameResponse",
   "data": {
     "code": 200,
-    "message" : "what",
-    "userId": 0,
-  "gameId": 1,
-  "availableSaves": [
-    "1xxxxxxxxxxxxxxxxxxx.tgz",
-    "2xxxxxxxxxxxxxxxxxxx.tgz",
-    "3xxxxxxxxxxxxxxxxxxx.tgz",
-    "4xxxxxxxxxxxxxxxxxxx.tgz",
-    "5xxxxxxxxxxxxxxxxxxx.tgz",
-    "6xxxxxxxxxxxxxxxxxxx.tgz",
-    "7xxxxxxxxxxxxxxxxxxx.tgz",
-    "8xxxxxxxxxxxxxxxxxxx.tgz",
-    "9xxxxxxxxxxxxxxxxxxx.tgz",
-    "axxxxxxxxxxxxxxxxxxx.tgz"
-  ]
+    "message" : "what"
   }
+
+  "params": {
+    "userId": 0,
+    "gameId": 1,
+  }
+
 }
 
   "method": "playGameRequest",
   "params": {
     "userId": 0,
-  "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
+    "expectedSave": "axxxxxxxxxxxxxxxxxxx.tgz",
     "game": {
       "id": 1,
-    "name": "aaaaa",
-    "process": "bbbbb",
-    "commands": {
+      "name": "aaaaa",
+      "process": "bbbbb",
+      "commands": {
       "launch": "ccccc",
       "shutdown": "ddddd"
     },
@@ -135,13 +128,17 @@
   }
 }
 
+#{"data"=>{"code"=>200, "message"=>"OK"}, "method"=>"stopGameResponse", "params"=>{"gameId"=>1, "userId"=>1}}
+
 {
   "method": "stopGameResponse",
   "data": {
     "code": 200,
     "message" : "what",
+  }
+  "params": {
     "userId": 0,
-  "gameId": 1
+    "gameId": 1
   }
 }
 
