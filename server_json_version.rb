@@ -13,7 +13,6 @@ class ControlServer < EM::Connection
     port, ip = Socket.unpack_sockaddr_in(get_peername)
     @ip = ip
     @control_node_port = port.to_s
-
     ip_with_port = ip + ":" + port.to_s
     @@connect_hash[ip_with_port] = self
     @timers = Timers::Group.new
@@ -26,7 +25,6 @@ class ControlServer < EM::Connection
   end
 
   def receive_data data
-
     begin
       parse_data = JSON.parse(data)
       case parse_data["method"]
@@ -112,8 +110,9 @@ class ControlServer < EM::Connection
       when "stopGameRequest"
         p "#{Time.now} rcv stop request from #{@ip}:#{@control_node_port}"
         begin
-          $con.query("UPDATE `status_checks` SET `status` = 'stop_game_from_node',
-              `updated_at` = '#{Time.now}' WHERE `status_checks`.`id` = #{user_id}")
+          user_id = parse_data["params"]["userId"]
+          $con.query("UPDATE `status_checks` SET `status` = 'stop_game_from_node',`updated_at` = '#{Time.now}'
+            WHERE `status_checks`.`id` = #{user_id}")
           opts = {"user_id" => parse_data["params"]["userId"], "game_id" => parse_data["params"]["gameId"]}
           handle_send("stop_game_response", opts)
         rescue Exception => ex
@@ -136,7 +135,8 @@ class ControlServer < EM::Connection
       case condition
       when "register_response"
         p "#{Time.now} send register response to #{@ip}:#{@control_node_port}"
-        response = { method: "registerNodeResponse", data: {code: 200, message: "successful connection"}}
+        node = {timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}}
+        response = { method: "registerNodeResponse", data: {code: 200, message: "successful connection",node: node }}
         send_data(response.to_json)
       when "heartbeat_response"
         response = { method: "heartbeatResponse"}
@@ -144,10 +144,11 @@ class ControlServer < EM::Connection
       when "prepare_request"
         p "#{Time.now} send prepare request to #{@ip}:#{@control_node_port}"
         storage = { host: "54.176.73.176",port: 990,username: "atgamesftp",password: "atgamescloud",
-          secure: { enabled: true, validation: false}, timeout: { connection: 10, operation: 15}}
+          secure: { enabled: true, validation: false}, timeout: { connection: 10, operation: 0}}
         params = { userId: opts["user_id"], gameId: opts["game_id"], synchronizeRequired: opts["update_saved"],
           storage: storage }
         response = { method: "prepareGameRequest", params: params}
+
         send_data(response.to_json)
       when "handle_play_game"
         p "#{Time.now} send play request to #{@ip}:#{@control_node_port}"
