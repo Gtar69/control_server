@@ -191,7 +191,7 @@ end
 EventMachine.run do
   p "#{Time.now} control server start up"
   begin
-    $con = Mysql.new 'localhost', 'chris', '12345678','Mgmt_Server_dev'
+    $con = Mysql.new 'localhost', 'root', '12345678','Mgmt_Server_dev'
   rescue Mysql::Error => e
     puts e.errno
     puts e.error
