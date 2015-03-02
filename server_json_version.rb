@@ -144,11 +144,12 @@ class ControlServer < EM::Connection
       when "prepare_request"
         p "#{Time.now} send prepare request to #{@ip}:#{@control_node_port}"
         storage = { host: "54.176.73.176",port: 990,username: "atgamesftp",password: "atgamescloud",
-          secure: { enabled: true, validation: false}, timeout: { connection: 10, operation: 0}}
+          secure: { enabled: true, validation: false}, timeout: { connection: 10000, operation: 0}}
         params = { userId: opts["user_id"], gameId: opts["game_id"], synchronizeRequired: opts["update_saved"],
           storage: storage }
-        response = { method: "prepareGameRequest", params: params}
 
+        response = { method: "prepareGameRequest", params: params}
+        p response.to_json
         send_data(response.to_json)
       when "handle_play_game"
         p "#{Time.now} send play request to #{@ip}:#{@control_node_port}"
