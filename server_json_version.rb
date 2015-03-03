@@ -47,7 +47,7 @@ class ControlServer < EM::Connection
           p "#{Time.now} An error of type #{ex.class} happened, message is #{ex.message}"
           response = { method: "registerNodeResponse", data: {code: 400, message: "#{ex.message}"}}
           $con.query("INSERT INTO `servernodes` (`name`,`ip_address`,`private_ip_add`,`status`)
-            VALUES ('#{mac_address}','#{@ip}','#{private_ip}','Dump in Registration')")
+            VALUES ('#{mac_address}','#{@ip}','#{private_ip}','Registration Error')")
           send_data(response.to_json)
         end
       when "heartbeatRequest"
@@ -74,7 +74,7 @@ class ControlServer < EM::Connection
           p "#{Time.now} rcv #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
           #prepare fail handling
-          $con.query("UPDATE `servernodes`  SET `status`='Dump in Preparation', `updated_at`='#{Time.now}'
+          $con.query("UPDATE `servernodes`  SET `status`='Preparation Error', `updated_at`='#{Time.now}'
             WHERE `servernodes`.`control_node_port` = '#{@control_node_port}'")
           $con.query("UPDATE `status_checks` SET `status` = 'fail_prepare',`updated_at` = '#{Time.now}'
             WHERE `status_checks`.`id` = #{user_id}")
@@ -89,7 +89,7 @@ class ControlServer < EM::Connection
           p "#{Time.now} rcv #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
           #play fail handling
-          $con.query("UPDATE `servernodes`  SET `status`='Dump in Playing Game', `updated_at`='#{Time.now}'
+          $con.query("UPDATE `servernodes`  SET `status`='Playing Error', `updated_at`='#{Time.now}'
             WHERE `servernodes`.`control_node_port` = '#{@control_node_port}'")
           $con.query("UPDATE `status_checks` SET `status` = 'fail_play',`updated_at` = '#{Time.now}'
             WHERE `status_checks`.`id` = #{user_id}")
@@ -104,7 +104,7 @@ class ControlServer < EM::Connection
         else
           #stop fail handling
           p "#{Time.now} rcv stop #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
-          $con.query("UPDATE `servernodes` SET `status` = 'Dump in Stop Game',
+          $con.query("UPDATE `servernodes` SET `status` = 'Stop Error',
             `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
         end
       when "stopGameRequest"
@@ -117,7 +117,7 @@ class ControlServer < EM::Connection
           handle_send("stop_game_response", opts)
         rescue Exception => ex
           p "An error of type #{ex.class} happened, message is #{ex.message}"
-          $con.query("UPDATE `servernodes` SET `status` = 'Dump in Stop Request From Node',
+          $con.query("UPDATE `servernodes` SET `status` = 'Stop Request From Node Error',
             `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
         end
       else
@@ -135,7 +135,7 @@ class ControlServer < EM::Connection
       case condition
       when "register_response"
         p "#{Time.now} send register response to #{@ip}:#{@control_node_port}"
-        node = {timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}}
+        node     = {timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}}
         response = { method: "registerNodeResponse", data: {code: 200, message: "successful connection",node: node }}
         send_data(response.to_json)
       when "heartbeat_response"
@@ -143,21 +143,26 @@ class ControlServer < EM::Connection
         send_data(response.to_json)
       when "prepare_request"
         p "#{Time.now} send prepare request to #{@ip}:#{@control_node_port}"
-        storage = { host: "54.176.73.176",port: 990,username: "atgamesftp",password: "atgamescloud",
+        storage  = { host: "54.176.73.176",port: 990, username: "atgamesftp",password: "atgamescloud",
           secure: { enabled: true, validation: false}, timeout: { connection: 10000, operation: 0}}
-        params = { userId: opts["user_id"], gameId: opts["game_id"], synchronizeRequired: opts["update_saved"],
+        params   = { userId: opts["user_id"], gameId: opts["game_id"], synchronizeRequired: opts["update_saved"],
           storage: storage }
-
         response = { method: "prepareGameRequest", params: params}
-        p response.to_json
+        #p "prepare json format"
+        #p response.to_json
         send_data(response.to_json)
       when "handle_play_game"
         p "#{Time.now} send play request to #{@ip}:#{@control_node_port}"
         backup = [name: opts["back_up_name"], root: opts["back_up_root"],
           entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]]
+        #p "play request"
+        #p opts["back_up_entries"]
+        #p opts["back_up_remove_entries"]
         game   = { id: opts["game_id"], name: opts["name"], process: opts["process_name"], backup: backup,
           commands: {launch: opts["launch_command"], shutdown: opts["shutdown_command"]} }
         response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game} }
+        p "play game json format"
+        p response.to_json
         send_data(response.to_json)
       when "stop_game"
         p "#{Time.now} send stop request to #{@ip}:#{@control_node_port}"
