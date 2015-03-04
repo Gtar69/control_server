@@ -52,7 +52,7 @@ class ControlServer < EM::Connection
         end
       when "heartbeatRequest"
         begin
-          p "#{Time.now} heartbeat request info from #{@ip}:#{@control_node_port}"
+          #p "#{Time.now} heartbeat request info from #{@ip}:#{@control_node_port}"
           @timers.pause
           @timers = Timers::Group.new
           @timers.every(30) do
