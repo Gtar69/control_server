@@ -177,14 +177,19 @@ class ControlServer < EM::Connection
       else
       end
     rescue Exception => ex
-      puts "An error of type #{ex.class} happened, message is #{ex.message}"
+      p "An error of type #{ex.class} happened, message is #{ex.message}"
     end
   end
 
   def unbind
-    $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
-      AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
-    p "#{@ip}:#{@control_node_port} disconnected from the control server!"
+    begin
+      $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
+        AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
+      p "#{@ip}:#{@control_node_port} disconnected from the control server!"
+    rescue Exception => ex
+      p "#{Time.now} error happend in unbind between server and node"
+      p "An error of type #{ex.class} happened, message is #{ex.message}"
+    end
   end
 
   def self.connect_hash
