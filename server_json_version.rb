@@ -68,6 +68,8 @@ class ControlServer < EM::Connection
         if parse_data["data"]["code"] == 200
           p "#{Time.now} rcv prepare response from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
+          #0306 Chris
+          @user_id = user_id
           $con.query("UPDATE `status_checks` SET `status` = 'notify_to_play',`updated_at` = '#{Time.now}'
             WHERE `status_checks`.`id` = #{user_id}")
         else
@@ -183,8 +185,13 @@ class ControlServer < EM::Connection
 
   def unbind
     begin
-      $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
-        AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
+      # 0306 Chris disconnectio not leave but dump
+      #$con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
+      #  AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
+      $con.query("UPDATE `servernodes` SET `status` = 'Dump in unbind',
+        `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
+      $con.query("UPDATE `status_checks` SET `status` = 'fail_connection',`updated_at` = '#{Time.now}'
+        WHERE `status_checks`.`id` = #{@user_id}")
       p "#{@ip}:#{@control_node_port} disconnected from the control server!"
     rescue Exception => ex
       p "#{Time.now} error happend in unbind between server and node"
