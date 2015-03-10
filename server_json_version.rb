@@ -16,7 +16,7 @@ class ControlServer < EM::Connection
     ip_with_port = ip + ":" + port.to_s
     @@connect_hash[ip_with_port] = self
     @timers = Timers::Group.new
-    @timers.every(30) do
+    @timers.every(15) do
       p "#{Time.now} on post init: ready to disconnect"
       self.unbind
     end
@@ -31,17 +31,18 @@ class ControlServer < EM::Connection
       when "registerNodeRequest"
         begin
           p "#{Time.now} register node request information from #{@ip}:#{@control_node_port}"
+          name             = SecureRandom.uuid
           packages         = parse_data["params"]["packages"]
           version          = parse_data["params"]["node"]["version"]
-          mac_address      = parse_data["params"]["node"]["macAddress"]
-          private_ip       = parse_data["params"]["node"]["localAddress"]
+          mac_addresses    = parse_data["params"]["node"]["macAddresses"]
+          local_addresses  = parse_data["params"]["node"]["localAddresses"]
           cast_port        = parse_data["params"]["streamer"]["port"]
           streamer_version = parse_data["params"]["streamer"]["version"]
           #register servernode
-          $con.query( "INSERT INTO `servernodes` (`created_at`, `updated_at`,`ip_address`,
-            `control_node_port`,`cast_port`,`status`,`name`,`version`,`private_ip_add`, `packages`,`streamer_version`)
-            VALUES ( '#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
-            '#{cast_port}','Available','#{mac_address}','#{version}','#{private_ip}','#{packages}','#{streamer_version}')")
+          $con.query( "INSERT INTO `servernodes` (`name`,`created_at`, `updated_at`,`ip_address`,
+            `control_node_port`,`cast_port`,`status`,`mac_addresses`,`version`,`local_addresses`, `packages`,`streamer_version`)
+            VALUES ( '#{name}','#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
+            '#{cast_port}','Available','#{mac_addresses}','#{version}','#{local_addresses}','#{packages}','#{streamer_version}')")
           handle_send("register_response")
         rescue Exception => ex
           p "#{Time.now} An error of type #{ex.class} happened, message is #{ex.message}"
@@ -55,9 +56,9 @@ class ControlServer < EM::Connection
           #p "#{Time.now} heartbeat request info from #{@ip}:#{@control_node_port}"
           @timers.pause
           @timers = Timers::Group.new
-          @timers.every(30) do
+          @timers.every(15) do
             p "#{Time.now} in heartbeat request => ready to disconnect"
-            self.unbind
+            unbind
           end
           Thread.new { @timers.wait }
           handle_send("heartbeat_response")
@@ -137,7 +138,7 @@ class ControlServer < EM::Connection
       case condition
       when "register_response"
         p "#{Time.now} send register response to #{@ip}:#{@control_node_port}"
-        node     = {timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}}
+        node     = {timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}, retry: {heartbeat: 3}}
         response = { method: "registerNodeResponse", data: {code: 200, message: "successful connection",node: node }}
         send_data(response.to_json)
       when "heartbeat_response"
@@ -188,6 +189,7 @@ class ControlServer < EM::Connection
       # 0306 Chris disconnect not leave but dump
       #$con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
       #  AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
+      close_connection
       $con.query("UPDATE `servernodes` SET `status` = 'Dump in unbind',
         `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
       if @user_id
