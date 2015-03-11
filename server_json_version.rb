@@ -38,6 +38,8 @@ class ControlServer < EM::Connection
           local_addresses  = parse_data["params"]["node"]["localAddresses"]
           cast_port        = parse_data["params"]["streamer"]["port"]
           streamer_version = parse_data["params"]["streamer"]["version"]
+          pattern = /(\')/
+          packages.map! {|package| package.gsub(pattern){|match| "''" }}
           #register servernode
           $con.query( "INSERT INTO `servernodes` (`name`,`created_at`, `updated_at`,`ip_address`,
             `control_node_port`,`cast_port`,`status`,`mac_addresses`,`version`,`local_addresses`, `packages`,`streamer_version`)
@@ -47,8 +49,8 @@ class ControlServer < EM::Connection
         rescue Exception => ex
           p "#{Time.now} An error of type #{ex.class} happened, message is #{ex.message}"
           response = { method: "registerNodeResponse", data: {code: 400, message: "#{ex.message}"}}
-          $con.query("INSERT INTO `servernodes` (`name`,`ip_address`,`private_ip_add`,`status`)
-            VALUES ('#{mac_address}','#{@ip}','#{private_ip}','Registration Error')")
+          $con.query("INSERT INTO `servernodes` (`name`,`ip_address`,`local_addresses`,`status`, `created_at`, `updated_at`)
+            VALUES ('#{mac_addresses}','#{@ip}','#{local_addresses}','Registration Error', '#{Time.now}', '#{Time.now}')")
           send_data(response.to_json)
         end
       when "heartbeatRequest"
@@ -63,7 +65,7 @@ class ControlServer < EM::Connection
           Thread.new { @timers.wait }
           handle_send("heartbeat_response")
         rescue Exception => ex
-          p "#{Time.now} heartveat request failed"
+          p "#{Time.now} heartbeat request failed"
         end
       when "prepareGameResponse"
         if parse_data["data"]["code"] == 200
@@ -106,7 +108,7 @@ class ControlServer < EM::Connection
             WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
         else
           #stop fail handling
-          p "#{Time.now} rcv stop #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
+          p "#{Time.nodeow} rcv stop #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
           $con.query("UPDATE `servernodes` SET `status` = 'Stop Error',
             `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
         end
