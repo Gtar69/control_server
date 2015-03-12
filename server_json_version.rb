@@ -192,7 +192,7 @@ class ControlServer < EM::Connection
       #$con.query("DELETE FROM `servernodes` WHERE `servernodes`.`ip_address`= '#{@ip}'
       #  AND `servernodes`.`control_node_port`= '#{@control_node_port}' ")
       close_connection
-      $con.query("UPDATE `servernodes` SET `status` = 'Dump in unbind',
+      $con.query("UPDATE `servernodes` SET `status` = 'Disconnected',
         `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
       if @user_id
         $con.query("UPDATE `status_checks` SET `status` = 'fail_connection',`updated_at` = '#{Time.now}'
