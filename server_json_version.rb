@@ -36,14 +36,16 @@ class ControlServer < EM::Connection
           version          = parse_data["params"]["node"]["version"]
           mac_addresses    = parse_data["params"]["node"]["macAddresses"]
           local_addresses  = parse_data["params"]["node"]["localAddresses"]
+          platform         = parse_data["params"]["node"]["platform"]
           cast_port        = parse_data["params"]["streamer"]["port"]
           streamer_version = parse_data["params"]["streamer"]["version"]
+
           pattern = /(\')/
           packages.map! {|package| package.gsub(pattern){|match| "''" }}
           #register servernode
-          $con.query( "INSERT INTO `servernodes` (`name`,`created_at`, `updated_at`,`ip_address`,
+          $con.query( "INSERT INTO `servernodes` (`platform`,`name`,`created_at`, `updated_at`,`ip_address`,
             `control_node_port`,`cast_port`,`status`,`mac_addresses`,`version`,`local_addresses`, `packages`,`streamer_version`)
-            VALUES ( '#{name}','#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
+            VALUES ( '#{platform}','#{name}','#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
             '#{cast_port}','Available','#{mac_addresses}','#{version}','#{local_addresses}','#{packages}','#{streamer_version}')")
           handle_send("register_response")
         rescue Exception => ex
@@ -166,8 +168,8 @@ class ControlServer < EM::Connection
         game   = { id: opts["game_id"], name: opts["name"], process: opts["process_name"], backup: backup,
           commands: {launch: opts["launch_command"], shutdown: opts["shutdown_command"]} }
         response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game} }
-        p "play game json format"
-        p response.to_json
+        #p "play game json format"
+        #p response.to_json
         send_data(response.to_json)
       when "stop_game"
         p "#{Time.now} send stop request to #{@ip}:#{@control_node_port}"
