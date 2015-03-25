@@ -37,7 +37,7 @@ class ControlServer < EM::Connection
       data = data.gsub(regex,"")
       ip_with_port = @ip + ":" + @control_node_port
       @@connect_hash[ip_with_port] = self
-    elsif data.emtpy?
+    elsif data.empty?
       data = "{}"
     end
 
