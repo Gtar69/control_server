@@ -9,22 +9,38 @@ class ControlServer < EM::Connection
   @@connect_hash = Hash.new
 
   def post_init
-    start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
-    port, ip = Socket.unpack_sockaddr_in(get_peername)
-    @ip = ip
-    @control_node_port = port.to_s
-    ip_with_port = ip + ":" + port.to_s
-    @@connect_hash[ip_with_port] = self
+    #start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
+    #port, ip = Socket.unpack_sockaddr_in(get_peername)
+    #@ip = ip
+    #@control_node_port = port.to_s
+    #ip_with_port = ip + ":" + port.to_s
+    #@@connect_hash[ip_with_port] = self
     @timers = Timers::Group.new
     @timers.every(15) do
       p "#{Time.now} on post init: ready to disconnect"
       self.unbind
     end
     Thread.new { @timers.wait }
-    p "#{@ip}:#{@control_node_port} connected to the control server"
+    #p "#{@ip}:#{@control_node_port} connected to the control server"
   end
 
   def receive_data data
+
+    if data.include? "PROXY"
+      regex = /.+\r\n/
+      ip_regex = /\s\d+.\d+.\d+.\d+/
+      port_regex = /\s\d+\s/
+      @ip = data.scan(ip_regex)[0].strip()
+      p @ip
+      @control_node_port = data.scan(port_regex)[0].strip()
+      p @control_node_port
+      data = data.gsub(regex,"")
+      ip_with_port = @ip + ":" + @control_node_port
+      @@connect_hash[ip_with_port] = self
+    elsif data.emtpy?
+      data = "{}"
+    end
+
     begin
       parse_data = JSON.parse(data)
       case parse_data["method"]
@@ -39,7 +55,6 @@ class ControlServer < EM::Connection
           platform         = parse_data["params"]["node"]["platform"]
           cast_port        = parse_data["params"]["streamer"]["port"]
           streamer_version = parse_data["params"]["streamer"]["version"]
-
           pattern = /(\')/
           packages.map! {|package| package.gsub(pattern){|match| "''" }}
           #register servernode
@@ -73,7 +88,7 @@ class ControlServer < EM::Connection
         if parse_data["data"]["code"] == 200
           p "#{Time.now} rcv prepare response from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
-          #0306 Chris
+          #0306 Chris add for handling error while user playing the game
           @user_id = user_id
           $con.query("UPDATE `status_checks` SET `status` = 'notify_to_play',`updated_at` = '#{Time.now}'
             WHERE `status_checks`.`id` = #{user_id}")
