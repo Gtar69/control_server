@@ -28,15 +28,9 @@ class ControlServer < EM::Connection
 
     if data.include? "PROXY"
       regex = /.+\r\n/
-      ip_regex = /\s\d+.\d+.\d+.\d+/
-      port_regex = /\s\d+\s/
-      @ip = data.scan(ip_regex)[0].strip()
-      p @ip
-      @control_node_port = data.scan(port_regex)[0].strip()
-      p @control_node_port
+      @proxy_protocol = data.scan(regex)[0]
+      p @proxy_protocol
       data = data.gsub(regex,"")
-      ip_with_port = @ip + ":" + @control_node_port
-      @@connect_hash[ip_with_port] = self
     elsif data.empty?
       data = "{}"
     end
@@ -47,6 +41,14 @@ class ControlServer < EM::Connection
       when "registerNodeRequest"
         begin
           p "#{Time.now} register node request information from #{@ip}:#{@control_node_port}"
+          ip_regex = /\s\d+.\d+.\d+.\d+/
+          port_regex = /\s\d+\s/
+          @ip = @proxy_protocol.scan(ip_regex)[0].strip()
+          p @ip
+          @control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
+          p @control_node_port
+          ip_with_port = @ip + ":" + @control_node_port
+          @@connect_hash[ip_with_port] = self
           name             = SecureRandom.uuid
           packages         = parse_data["params"]["packages"]
           version          = parse_data["params"]["node"]["version"]
