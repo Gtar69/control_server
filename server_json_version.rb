@@ -9,12 +9,14 @@ class ControlServer < EM::Connection
   @@connect_hash = Hash.new
 
   def post_init
-    #start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
-    #port, ip = Socket.unpack_sockaddr_in(get_peername)
-    #@ip = ip
-    #@control_node_port = port.to_s
-    #ip_with_port = ip + ":" + port.to_s
-    #@@connect_hash[ip_with_port] = self
+    # Chris@0326 for local useage
+    start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
+    port, ip = Socket.unpack_sockaddr_in(get_peername)
+    @ip = ip
+    @control_node_port = port.to_s
+    ip_with_port = ip + ":" + port.to_s
+    @@connect_hash[ip_with_port] = self
+    # local usage end
     @timers = Timers::Group.new
     @timers.every(15) do
       p "#{Time.now} on post init: ready to disconnect"
@@ -25,15 +27,16 @@ class ControlServer < EM::Connection
   end
 
   def receive_data data
+    # Chris@0326 for load balancer proxy protocol
+    #if data.include? "PROXY"
+    #  regex = /.+\r\n/
+    #  @proxy_protocol = data.scan(regex)[0]
+    #  p @proxy_protocol
+    #  data = data.gsub(regex,"")
+    #elsif data.empty?
+    #  data = "{}"
+    #end
 
-    if data.include? "PROXY"
-      regex = /.+\r\n/
-      @proxy_protocol = data.scan(regex)[0]
-      p @proxy_protocol
-      data = data.gsub(regex,"")
-    elsif data.empty?
-      data = "{}"
-    end
 
     begin
       parse_data = JSON.parse(data)
@@ -41,15 +44,18 @@ class ControlServer < EM::Connection
       when "registerNodeRequest"
         begin
           p "#{Time.now} register node request information from #{@ip}:#{@control_node_port}"
-          ip_regex = /\s\d+.\d+.\d+.\d+/
-          port_regex = /\s\d+\s/
-          @ip = @proxy_protocol.scan(ip_regex)[0].strip()
-          p @ip
-          @control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
-          p @control_node_port
-          ip_with_port = @ip + ":" + @control_node_port
-          @@connect_hash[ip_with_port] = self
+     # Chris@0326 for load balancer proxy protocol
+     #     ip_regex = /\s\d+.\d+.\d+.\d+/
+     #     port_regex = /\s\d+\s/
+     #     @ip = @proxy_protocol.scan(ip_regex)[0].strip()
+     #     p @ip
+     #     @control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
+     #     p @control_node_port
+     #     ip_with_port = @ip + ":" + @control_node_port
+     #     @@connect_hash[ip_with_port] = self
           name             = SecureRandom.uuid
+          # do not forget change channel name in different instance
+          channel = "venice_espn"
           packages         = parse_data["params"]["packages"]
           version          = parse_data["params"]["node"]["version"]
           mac_addresses    = parse_data["params"]["node"]["macAddresses"]
@@ -60,9 +66,9 @@ class ControlServer < EM::Connection
           pattern = /(\')/
           packages.map! {|package| package.gsub(pattern){|match| "''" }}
           #register servernode
-          $con.query( "INSERT INTO `servernodes` (`platform`,`name`,`created_at`, `updated_at`,`ip_address`,
+          $con.query( "INSERT INTO `servernodes` (`platform`,`name`,`created_at`, `updated_at`,`ip_address`, `channel`,
             `control_node_port`,`cast_port`,`status`,`mac_addresses`,`version`,`local_addresses`, `packages`,`streamer_version`)
-            VALUES ( '#{platform}','#{name}','#{Time.now}', '#{Time.now}','#{@ip}','#{@control_node_port}',
+            VALUES ( '#{platform}','#{name}','#{Time.now}', '#{Time.now}','#{@ip}','#{channel}','#{@control_node_port}',
             '#{cast_port}','Available','#{mac_addresses}','#{version}','#{local_addresses}','#{packages}','#{streamer_version}')")
           handle_send("register_response")
         rescue Exception => ex
@@ -234,16 +240,16 @@ end
 EventMachine.run do
   p "#{Time.now} control server start up"
   begin
-    $con = Mysql.new '10.0.1.21', 'chris', 'atgames1234','mgmt_server'
+    $con = Mysql.new 'localhost', 'root', '12345678','Mgmt_Server_dev'
   rescue Mysql::Error => e
     puts e.errno
     puts e.error
   end
 
   $con.query("Truncate table `servernodes`")
-  $redis = Redis.new(:host => 'localhost', :port => 6379)
+  $redis = Redis.new(:host => "52.11.49.98", :port => 6379)
   Thread.new do
-    $redis.subscribe('rails_em_channel', 'ruby-lang') do |on|
+    $redis.subscribe('venice_espn', 'ruby-lang') do |on|
       on.message do |channel, msg|
         parse_msg = JSON.parse(msg)
         conn      = ControlServer.connect_hash
