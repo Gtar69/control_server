@@ -9,13 +9,13 @@ class ControlServer < EM::Connection
   @@connect_hash = Hash.new
 
   def post_init
-    # Chris@0326 for local useage
-    start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
-    port, ip = Socket.unpack_sockaddr_in(get_peername)
-    @ip = ip
-    @control_node_port = port.to_s
-    ip_with_port = ip + ":" + port.to_s
-    @@connect_hash[ip_with_port] = self
+    #Chris@0326 for local useage
+    #start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
+    #port, ip = Socket.unpack_sockaddr_in(get_peername)
+    #@ip = ip
+    #@control_node_port = port.to_s
+    #ip_with_port = ip + ":" + port.to_s
+    #@@connect_hash[ip_with_port] = self
     # local usage end
     @timers = Timers::Group.new
     @timers.every(15) do
@@ -28,14 +28,14 @@ class ControlServer < EM::Connection
 
   def receive_data data
     # Chris@0326 for load balancer proxy protocol
-    #if data.include? "PROXY"
-    #  regex = /.+\r\n/
-    #  @proxy_protocol = data.scan(regex)[0]
-    #  p @proxy_protocol
-    #  data = data.gsub(regex,"")
-    #elsif data.empty?
-    #  data = "{}"
-    #end
+    if data.include? "PROXY"
+      regex = /.+\r\n/
+      @proxy_protocol = data.scan(regex)[0]
+      p @proxy_protocol
+      data = data.gsub(regex,"")
+    elsif data.empty?
+      data = "{}"
+    end
 
 
     begin
@@ -44,17 +44,17 @@ class ControlServer < EM::Connection
       when "registerNodeRequest"
         begin
           p "#{Time.now} register node request information from #{@ip}:#{@control_node_port}"
-     # Chris@0326 for load balancer proxy protocol
-     #     ip_regex = /\s\d+.\d+.\d+.\d+/
-     #     port_regex = /\s\d+\s/
-     #     @ip = @proxy_protocol.scan(ip_regex)[0].strip()
-     #     p @ip
-     #     @control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
-     #     p @control_node_port
-     #     ip_with_port = @ip + ":" + @control_node_port
-     #     @@connect_hash[ip_with_port] = self
+          #Chris@0326 for load balancer proxy protocol
+          ip_regex = /\s\d+.\d+.\d+.\d+/
+          port_regex = /\s\d+\s/
+          @ip = @proxy_protocol.scan(ip_regex)[0].strip()
+          p @ip
+          @control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
+          p @control_node_port
+          ip_with_port = @ip + ":" + @control_node_port
+          @@connect_hash[ip_with_port] = self
           name             = SecureRandom.uuid
-          # do not forget change channel name in different instance
+          #remember change channel name in different instance
           channel = "venice_espn"
           packages         = parse_data["params"]["packages"]
           version          = parse_data["params"]["node"]["version"]
@@ -247,8 +247,9 @@ EventMachine.run do
   end
 
   $con.query("Truncate table `servernodes`")
-  $redis = Redis.new(:host => "52.11.49.98", :port => 6379)
+  $redis = Redis.new(:host => "10.0.0.245", :port => 6379)
   Thread.new do
+    #Chris@0326 remember different channel name in different machines
     $redis.subscribe('venice_espn', 'ruby-lang') do |on|
       on.message do |channel, msg|
         parse_msg = JSON.parse(msg)
