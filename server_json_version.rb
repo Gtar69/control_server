@@ -55,7 +55,7 @@ class ControlServer < EM::Connection
           @@connect_hash[ip_with_port] = self
           name             = SecureRandom.uuid
           #remember change channel name in different instance
-          channel = "venice_espn"
+          channel = "venice_fox"
           packages         = parse_data["params"]["packages"]
           version          = parse_data["params"]["node"]["version"]
           mac_addresses    = parse_data["params"]["node"]["macAddresses"]
@@ -248,11 +248,11 @@ EventMachine.run do
 
   #Chris@0327 delete servernode fro
   #$con.query("Truncate table `servernodes`")
-  $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`channel`= 'venice_espn'")
+  $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`channel`= 'venice_fox'")
   $redis = Redis.new(:host => "10.0.0.245", :port => 6379)
   Thread.new do
     #Chris@0326 remember different channel name in different machines
-    $redis.subscribe('venice_espn', 'ruby-lang') do |on|
+    $redis.subscribe('venice_fox', 'ruby-lang') do |on|
       on.message do |channel, msg|
         parse_msg = JSON.parse(msg)
         conn      = ControlServer.connect_hash
