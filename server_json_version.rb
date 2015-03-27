@@ -248,7 +248,7 @@ EventMachine.run do
 
   #Chris@0327 delete servernode fro
   #$con.query("Truncate table `servernodes`")
-  $con.$con.query("DELETE FROM `servernodes` WHERE `servernodes`.`channel`= 'venice_espn'")
+  $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`channel`= 'venice_espn'")
   $redis = Redis.new(:host => "10.0.0.245", :port => 6379)
   Thread.new do
     #Chris@0326 remember different channel name in different machines
