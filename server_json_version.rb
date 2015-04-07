@@ -10,12 +10,12 @@ class ControlServer < EM::Connection
 
   def post_init
     #Chris@0326 for local useage
-    #start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
-    #port, ip = Socket.unpack_sockaddr_in(get_peername)
-    #@ip = ip
-    #@control_node_port = port.to_s
-    #ip_with_port = ip + ":" + port.to_s
-    #@@connect_hash[ip_with_port] = self
+    start_tls :private_key_file => './atgames.key', :cert_chain_file => './atgames.crt', :verify_peer => false
+    port, ip = Socket.unpack_sockaddr_in(get_peername)
+    @ip = ip
+    @control_node_port = port.to_s
+    ip_with_port = ip + ":" + port.to_s
+    @@connect_hash[ip_with_port] = self
     # local usage end
     @timers = Timers::Group.new
     @timers.every(15) do
@@ -45,14 +45,14 @@ class ControlServer < EM::Connection
         begin
           p "#{Time.now} register node request information from #{@ip}:#{@control_node_port}"
           #Chris@0326 for load balancer proxy protocol
-          ip_regex = /\s\d+.\d+.\d+.\d+/
-          port_regex = /\s\d+\s/
-          @ip = @proxy_protocol.scan(ip_regex)[0].strip()
-          p @ip
-          @control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
-          p @control_node_port
-          ip_with_port = @ip + ":" + @control_node_port
-          @@connect_hash[ip_with_port] = self
+          #ip_regex = /\s\d+.\d+.\d+.\d+/
+          #port_regex = /\s\d+\s/
+          #@ip = @proxy_protocol.scan(ip_regex)[0].strip()
+          #p @ip
+          #@control_node_port = @proxy_protocol.scan(port_regex)[0].strip()
+          #p @control_node_port
+          #ip_with_port = @ip + ":" + @control_node_port
+          #@@connect_hash[ip_with_port] = self
           name             = SecureRandom.uuid
           #remember change channel name in different instance
           channel          = "venice_fox"
@@ -80,7 +80,7 @@ class ControlServer < EM::Connection
         end
       when "heartbeatRequest"
         begin
-          p "#{Time.now} heartbeat request info from #{@ip}:#{@control_node_port}"
+          #p "#{Time.now} heartbeat request info from #{@ip}:#{@control_node_port}"
           @timers.pause
           @timers = Timers::Group.new
           @timers.every(15) do
@@ -99,7 +99,7 @@ class ControlServer < EM::Connection
           #0306 Chris add for handling error while user playing the game
           @user_id = user_id
           $con.query("UPDATE `status_checks` SET `status` = 'notify_to_play',`updated_at` = '#{Time.now}'
-            WHERE `status_checks`.`id` = #{user_id}")
+            WHERE `status_checks`.`user_id` = #{user_id}")
         else
           p "#{Time.now} rcv #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
@@ -107,14 +107,14 @@ class ControlServer < EM::Connection
           $con.query("UPDATE `servernodes`  SET `status`='Preparation Error', `updated_at`='#{Time.now}'
             WHERE `servernodes`.`control_node_port` = '#{@control_node_port}'")
           $con.query("UPDATE `status_checks` SET `status` = 'fail_prepare',`updated_at` = '#{Time.now}'
-            WHERE `status_checks`.`id` = #{user_id}")
+            WHERE `status_checks`.`user_id` = #{user_id}")
         end
       when "playGameResponse"
         if parse_data["data"]["code"] == 200
           p "#{Time.now} rcv play repsponse from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
           $con.query("UPDATE `status_checks` SET `status` = 'playing_game_now',`updated_at` = '#{Time.now}'
-            WHERE `status_checks`.`id` = #{user_id}")
+            WHERE `status_checks`.`user_id` = #{user_id}")
         else
           p "#{Time.now} rcv #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
@@ -122,7 +122,7 @@ class ControlServer < EM::Connection
           $con.query("UPDATE `servernodes`  SET `status`='Playing Error', `updated_at`='#{Time.now}'
             WHERE `servernodes`.`control_node_port` = '#{@control_node_port}'")
           $con.query("UPDATE `status_checks` SET `status` = 'fail_play',`updated_at` = '#{Time.now}'
-            WHERE `status_checks`.`id` = #{user_id}")
+            WHERE `status_checks`.`user_id` = #{user_id}")
         end
 
       when "stopGameResponse"
@@ -142,7 +142,7 @@ class ControlServer < EM::Connection
         begin
           user_id = parse_data["params"]["userId"]
           $con.query("UPDATE `status_checks` SET `status` = 'stop_game_from_node',`updated_at` = '#{Time.now}'
-            WHERE `status_checks`.`id` = #{user_id}")
+            WHERE `status_checks`.`user_id` = #{user_id}")
           opts = {"user_id" => parse_data["params"]["userId"], "game_id" => parse_data["params"]["gameId"]}
           handle_send("stop_game_response", opts)
         rescue Exception => ex
@@ -221,7 +221,7 @@ class ControlServer < EM::Connection
       #  `updated_at` = '#{Time.now}' WHERE `servernodes`.`control_node_port` = #{@control_node_port}")
       if @user_id
         $con.query("UPDATE `status_checks` SET `status` = 'fail_connection',`updated_at` = '#{Time.now}'
-          WHERE `status_checks`.`id` = #{@user_id}")
+          WHERE `status_checks`.`user_id` = #{@user_id}")
       end
       p "#{@ip}:#{@control_node_port} disconnected from the control server!"
     rescue Exception => ex
@@ -240,7 +240,7 @@ end
 EventMachine.run do
   p "#{Time.now} control server start up"
   begin
-    $con = Mysql.new '10.0.1.21', 'chris', 'atgames1234','mgmt_server'
+    $con = Mysql.new 'localhost', 'chris', '12345678','Mgmt_Server_dev'
   rescue Mysql::Error => e
     puts e.errno
     puts e.error
@@ -249,7 +249,7 @@ EventMachine.run do
   #Chris@0327 delete servernode fro
   #$con.query("Truncate table `servernodes`")
   $con.query("DELETE FROM `servernodes` WHERE `servernodes`.`channel`= 'venice_fox'")
-  $redis = Redis.new(:host => "10.0.0.245", :port => 6379)
+  $redis = Redis.new(:host => "localhost", :port => 6379)
   Thread.new do
     #Chris@0326 remember different channel name in different machines
     $redis.subscribe('venice_fox', 'ruby-lang') do |on|
