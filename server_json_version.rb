@@ -3,6 +3,7 @@ require 'redis'
 require 'mysql'
 require 'json'
 require 'timers'
+require 'active_record'
 
 class ControlServer < EM::Connection
 
@@ -96,28 +97,22 @@ class ControlServer < EM::Connection
         if parse_data["data"]["code"] == 200
           p "#{Time.now} rcv prepare response from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]
+          game_id = parse_data["params"]["gameId"]
           #0306 Chris add for handling error while user playing the game
           @user_id = user_id
           $con.query("UPDATE `status_checks` SET `status` = 'notify_to_play',`updated_at` = '#{Time.now}'
             WHERE `status_checks`.`user_id` = #{user_id}")
+
+
           #0429 Chris if response is initiated by api call, it shoule note as from: "api"
-
-          game_id = parse_data["params"]["gameId"]
-
-
-          #Product.find(params[:id])
-          #backup = [name: opts["back_up_name"], root: opts["back_up_root"],
-          #entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]]
-          #p "play request"
-          #p opts["back_up_entries"]
-          #p opts["back_up_remove_entries"]
-          #game   = { id: opts["game_id"], name: opts["name"], process: opts["process_name"], backup: backup,
-          #  commands: {launch: opts["launch_command"], shutdown: opts["shutdown_command"]} }
-          #response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game} }
-          #p "play game json format"
-          #p response.to_json
-          #send_data(response.to_json)
-
+          # should notify xhtp api
+          p      = Product.find(game_id)
+          backup = [ name: p.back_up_name, root: p.back_up_root, entries: p.back_up_entries,
+                     removeEntries: p.back_up_remove_entries ]
+          game = {id: game_id, name: p.name, process: p.process_name, backup: backup,
+                  commands: {launch: p.launch_command, shutdown: p.shutdown_command } }
+          response = { method: "playGameRequest", params: {userId: user_id, game: game} }
+          send_data(response.to_json)
 
         else
           p "#{Time.now} rcv #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
@@ -164,6 +159,8 @@ class ControlServer < EM::Connection
             WHERE `status_checks`.`user_id` = #{user_id}")
           opts = {"user_id" => parse_data["params"]["userId"], "game_id" => parse_data["params"]["gameId"]}
           handle_send("stop_game_response", opts)
+
+
         rescue Exception => ex
           p "An error of type #{ex.class} happened, message is #{ex.message}"
           $con.query("UPDATE `servernodes` SET `status` = 'Stop Request From Node Error',
@@ -183,8 +180,9 @@ class ControlServer < EM::Connection
     begin
       case condition
       when "register_response"
+        p Product.all
         p "#{Time.now} send register response to #{@ip}:#{@control_node_port}"
-        node     = {timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}, retry: {heartbeat: 3}}
+        node     = { timeout: {connection: 1000}, interval: {reconnect: 1000, heartbeat: 5000}, retry: {heartbeat: 3}}
         response = { method: "registerNodeResponse", data: {code: 200, message: "successful connection",node: node }}
         send_data(response.to_json)
       when "heartbeat_response"
@@ -264,6 +262,19 @@ EventMachine.run do
     puts e.errno
     puts e.error
   end
+
+  Dir["./rails_models/*.rb"].each {|file| require file }
+
+  ActiveRecord::Base.establish_connection(
+    adapter:  'mysql2', # or 'postgresql' or 'sqlite3'
+    host:     'localhost',
+    database: 'Mgmt_Server_dev',
+    username: 'chris',
+    password: '12345678'
+  )
+
+
+  #p Product.all
 
   #Chris@0327 delete servernode fro
   #$con.query("Truncate table `servernodes`")

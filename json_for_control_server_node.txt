@@ -154,3 +154,15 @@
 {
   "method": "heartbeatResponse"
 }
+
+{
+
+"method": "notifyStopFinishRequest"
+
+收到node傳給control server的notifyStopFinsishRequest之後
+將node release 給waiting_queue的人
+  1. 檢查global_queue
+  2. 幫waiting queue的玩家 在發出prepare request
+  3. 收到prepare response後 在發play game request
+  4. 收到prepare response call zooti notify_player api
+}
