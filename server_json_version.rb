@@ -100,6 +100,25 @@ class ControlServer < EM::Connection
           @user_id = user_id
           $con.query("UPDATE `status_checks` SET `status` = 'notify_to_play',`updated_at` = '#{Time.now}'
             WHERE `status_checks`.`user_id` = #{user_id}")
+          #0429 Chris if response is initiated by api call, it shoule note as from: "api"
+
+          game_id = parse_data["params"]["gameId"]
+
+
+          #Product.find(params[:id])
+          #backup = [name: opts["back_up_name"], root: opts["back_up_root"],
+          #entries: opts["back_up_entries"], removeEntries: opts["back_up_remove_entries"]]
+          #p "play request"
+          #p opts["back_up_entries"]
+          #p opts["back_up_remove_entries"]
+          #game   = { id: opts["game_id"], name: opts["name"], process: opts["process_name"], backup: backup,
+          #  commands: {launch: opts["launch_command"], shutdown: opts["shutdown_command"]} }
+          #response = { method: "playGameRequest", params: {userId: opts["user_id"], game: game} }
+          #p "play game json format"
+          #p response.to_json
+          #send_data(response.to_json)
+
+
         else
           p "#{Time.now} rcv #{parse_data["data"]["message"]} from #{@ip}:#{@control_node_port}"
           user_id = parse_data["params"]["userId"]

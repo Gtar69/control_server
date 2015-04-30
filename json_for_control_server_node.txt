@@ -31,7 +31,12 @@
   "params": {
     "userId": 0,
     "gameId": 1,
+
+    "sesison_token": "e793815b3e8b9eef1e5a54650ad0b7c088ada5fc",
+    "request_from": "api" | "website",
+
     "synchronizeRequired": true|false,
+
     "storage": {
       "host": "xxx.xxx.xxx.xxx",
       "port": 12345,
